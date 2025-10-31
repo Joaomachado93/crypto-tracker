@@ -1,7 +1,9 @@
 import { ref, watch, onUnmounted, type Ref } from 'vue'
-import type { BinanceTicker24h } from '@/types/binance'
+import type { BinanceTicker24h } from '../types/binance'
 
 const WS_BASE = 'wss://stream.binance.com:9443/ws'
+const INITIAL_BACKOFF = 1000
+const MAX_BACKOFF = 30000
 
 export function useBinanceSocket(symbols: Ref<string[]>) {
   const socket = ref<WebSocket | null>(null)
@@ -10,62 +12,105 @@ export function useBinanceSocket(symbols: Ref<string[]>) {
   const isReconnecting = ref(false)
   const lastError = ref<string | null>(null)
 
-  // counter connection
-  let reconnectTimeout: number | undefined
-  let backoff = 1000
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let backoff = INITIAL_BACKOFF
+  let gotFirstMessage = false
+  let isConnecting = false
 
-  function connect() {
+  const clearReconnect = () => {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
+  }
+
+  const scheduleReconnect = () => {
+    if (reconnectTimer) return
+    if (isConnecting) return
+    if (socket.value) return
+
+    isReconnecting.value = true
+    const delay = Math.min(backoff, MAX_BACKOFF)
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null
+      connect()
+      backoff = Math.min(backoff * 2, MAX_BACKOFF)
+    }, delay)
+  }
+
+  const connect = () => {
+    if (isConnecting) return
+    isConnecting = true
+
+    clearReconnect()
     if (socket.value) {
-      socket.value.close()
+      try {
+        socket.value.onclose = null
+        socket.value.close()
+      } catch {}
       socket.value = null
     }
 
-    const url = `${WS_BASE}/${symbols.value.map(s => s.toLowerCase() + '@ticker').join('/')}`
+    gotFirstMessage = false
+
+    const url = `${WS_BASE}/${symbols.value.map(s => `${s.toLowerCase()}@ticker`).join('/')}`
     const ws = new WebSocket(url)
     socket.value = ws
 
     ws.onopen = () => {
       isConnected.value = true
-      isReconnecting.value = false
       lastError.value = null
-      backoff = 1000 // reset backoff
+      backoff = INITIAL_BACKOFF
+      clearReconnect()
+      isConnecting = false
     }
 
     ws.onmessage = (e) => {
       try {
-        const data = JSON.parse(e.data)
-        if (data.e === '24hrTicker') lastMessage.value = data
+        const data = JSON.parse(e.data as string)
+        if (data?.e === '24hrTicker') {
+          lastMessage.value = data as BinanceTicker24h
+          if (!gotFirstMessage) {
+            gotFirstMessage = true
+            isReconnecting.value = false
+          }
+        }
       } catch {
         lastError.value = 'Erro ao processar mensagem.'
       }
     }
 
-    ws.onerror = (e) => {
+    ws.onerror = () => {
       lastError.value = 'Erro de WebSocket.'
-      console.error('WebSocket error:', e)
     }
 
     ws.onclose = () => {
       isConnected.value = false
-      isReconnecting.value = true
-      reconnect()
+      isConnecting = false
+      socket.value = null
+      scheduleReconnect()
     }
   }
 
-  function reconnect() {
-    clearTimeout(reconnectTimeout)
-    reconnectTimeout = window.setTimeout(() => {
-      connect()
-      //until 30s
-      backoff = Math.min(backoff * 2, 30000)
-    }, backoff)
-  }
+  // a ligar
+  watch(
+    symbols,
+    () => {
+      connect();
+    },
+    { immediate: true, deep: true }
+  )
 
-  watch(symbols, () => connect(), { immediate: true })
 
   onUnmounted(() => {
-    socket.value?.close()
-    clearTimeout(reconnectTimeout)
+    clearReconnect()
+    if (socket.value) {
+      try {
+        socket.value.onclose = null
+        socket.value.close()
+      } catch {}
+      socket.value = null
+    }
   })
 
   return { lastMessage, isConnected, isReconnecting, lastError, connect }

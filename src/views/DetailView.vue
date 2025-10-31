@@ -16,14 +16,10 @@ const syms = computed(() => [symbol.value])
 const { lastMessage, isConnected, isReconnecting, lastError } = useBinanceSocket(syms)
 watch(lastMessage, m => { if (m?.s) store.upsert(m) })
 
-const nf = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
 const t = computed(() => tickBySymbol.value[symbol.value] ?? null)
-const deltaPct = computed(() => (t.value ? `${t.value.P.toFixed(2)}%` : '—'))
-const deltaColor = computed(() => {
-  if (!t.value) return 'gray'
-  return t.value.p >= 0 ? 'green' : 'red'
-})
+const nf = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const deltaPct = computed(() => t.value ? `${t.value.P.toFixed(2)}%` : '—')
+const deltaColor = computed(() => (!t.value || t.value.p === 0) ? 'gray' : (t.value.p > 0 ? 'green' : 'red'))
 </script>
 
 <template>
@@ -33,16 +29,11 @@ const deltaColor = computed(() => {
       <RouterLink to="/" class="text-sm underline">Voltar</RouterLink>
     </div>
 
-    <div class="text-xs">
-      <span v-if="isConnected" class="text-emerald-600">Ligado</span>
-      <span v-else-if="isReconnecting" class="text-amber-600">A ligar…</span>
-      <span v-else class="text-rose-600">Desligado</span>
-      <span v-if="lastError"> — {{ lastError }}</span>
-    </div>
+    <StatusBar :connected="isConnected" :reconnecting="isReconnecting" :error="lastError" />
 
     <StatPill :label="'24h'" :value="deltaPct" :color="deltaColor" />
 
-    <div v-if="t" class="grid grid-cols-2 gap-3">
+    <div v-if="t" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div class="p-3 rounded-2xl shadow bg-white">
         <div class="text-xs text-gray-500">Preço</div>
         <div class="text-lg font-semibold">{{ nf.format(t.c) }}</div>
@@ -50,12 +41,12 @@ const deltaColor = computed(() => {
 
       <div class="p-3 rounded-2xl shadow bg-white">
         <div class="text-xs text-gray-500">24h</div>
-        <div :class="t.p >= 0 ? 'text-green-600' : 'text-red-600'" class="text-lg font-semibold">
+        <div :class="t.p >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="text-lg font-semibold">
           {{ nf.format(t.p) }} ({{ t.P.toFixed(2) }}%)
         </div>
       </div>
     </div>
 
-    <div v-else class="text-sm text-gray-500">Loading....</div>
+    <div v-else class="text-sm text-gray-500">A carregar dados…</div>
   </div>
 </template>
