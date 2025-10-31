@@ -33,7 +33,7 @@ export const useCryptoStore = defineStore('crypto', () => {
     symbols.value
       .map(s => tickBySymbol.value[formatSymbol(s)])
       .filter((t): t is Ticker => Boolean(t))
-      // ordenação por % para dar destaque
+      // order %
       .sort((a, b) => b.P - a.P)
   )
 

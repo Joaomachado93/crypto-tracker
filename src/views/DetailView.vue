@@ -2,9 +2,9 @@
 import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { useCryptoStore } from '@/store/cryptoStore'
-import { useBinanceSocket } from '@/composables/useBinanceSocket'
-import StatPill from '@/components/StatPill.vue'
+import { useCryptoStore } from '../store/cryptoStore'
+import { useBinanceSocket } from '../composables/useBinanceSocket'
+import StatPill from '../components/StatPill.vue'
 
 const route = useRoute()
 const symbol = computed(() => String(route.params.symbol ?? 'BTCUSDT').toUpperCase())
@@ -40,7 +40,6 @@ const deltaColor = computed(() => {
       <span v-if="lastError"> — {{ lastError }}</span>
     </div>
 
-    <!-- StatPill ack -->
     <StatPill :label="'24h'" :value="deltaPct" :color="deltaColor" />
 
     <div v-if="t" class="grid grid-cols-2 gap-3">
