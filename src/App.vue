@@ -1,21 +1,19 @@
-<script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-<template>
-  <router-view />
-</template>
+<script setup lang="ts"></script>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-</style>
+<template>
+  <div class="min-h-screen bg-gray-50 text-gray-900">
+    <!-- full-width black -->
+    <header class="bg-black text-white">
+      <!-- Container -->
+      <div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+        <RouterLink to="/" class="flex items-center gap-2 font-bold">
+          <img src="/Logo-Goma.svg" alt="Logo Goma" class="h-12 w-auto" />
+        </RouterLink>
+      </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 pb-10">
+      <RouterView />
+    </main>
+  </div>
+</template>

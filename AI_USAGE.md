@@ -1,34 +1,17 @@
+# AI Usage
 
----
+## Ferramenta:  ChatGPT
 
-### 🧠 2. AI_USAGE.md (obrigatório)
-O desafio pede um ficheiro onde documentas **como usaste IA** (Cursor, ChatGPT, Copilot, etc.).
+## Para quê
+Ajustes de Tailwind-downgrade v4 para v3.4 e configurar PostCSS.
 
-Cria `AI_USAGE.md` com este formato:
+## Prompts
+Tailwind not applying on Vite: fix config for v3, postcss.config.js, tailwind.config.js, main.css
 
-```markdown
-# AI Usage Report
+## Validação/Adaptações
+Troca de `window.setTimeout` por `setTimeout` global (Node).
+Tailwind 3.4 com PostCSS clássico para Vite.
 
-## Tools Used
-- ChatGPT (GPT-5)
-- Cursor IDE with inline suggestions
-
-## Purpose
-- Set up Tailwind configuration
-- Generate WebSocket composable (useBinanceSocket)
-- Write unit tests for composables
-- Fix reconnection logic and Vitest setup
-
-## Effective Prompts
-> “Create a Vue 3 composable that connects to Binance WebSocket streams and handles reconnection gracefully.”
-
-> “Write Vitest unit tests for a WebSocket composable without installing extra plugins.”
-
-## Validation
-- Manually verified console output from WebSocket connections
-- Tested disconnection and reconnection manually
-- Validated price data against Binance web dashboard
-
-## Challenges
-- Infinite timer loop during Vitest mock tests
-- Handling lifecycle hooks outside Vue component context
+## Desafios
+Jitter no backoff- ajuste de testes/temporizadores.
+Tailwind v4 não aplicava estilos- downgrade para v3.4.

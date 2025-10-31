@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, nextTick } from 'vue'
 import { useBinanceSocket } from '@/composables/useBinanceSocket'
 
-// ── WebSocket stub controlável ───────────────────────────────────
 class WSStub {
   static instances: WSStub[] = []
   onopen?: () => void
@@ -12,11 +11,9 @@ class WSStub {
 
   constructor(public url: string) {
     WSStub.instances.push(this)
-    // simula onopen async
     setTimeout(() => this.onopen?.(), 0)
   }
   close() {
-    // simula onclose async
     setTimeout(() => this.onclose?.(), 0)
   }
   __emit(data: any) {
@@ -30,7 +27,6 @@ beforeEach(() => {
   vi.useFakeTimers()
   vi.stubGlobal('WebSocket', WSStub as any)
   WSStub.instances = []
-  // silenciar avisos de lifecycle fora de componente
   warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 })
 
@@ -44,13 +40,11 @@ afterEach(() => {
 describe('useBinanceSocket', () => {
   it('recebe mensagens e atualiza lastMessage', async () => {
     const symbols = ref(['BTCUSDT', 'ETHUSDT'])
-    // ⚠️ o composable deve expor connect()
     const { lastMessage, isConnected, connect } = useBinanceSocket(symbols)
 
-    // em Node, chamamos manualmente
     connect()
     await nextTick()
-    vi.runAllTimers() // processa onopen
+    vi.runAllTimers()
 
     expect(WSStub.instances.length).toBe(1)
 
@@ -66,8 +60,7 @@ describe('useBinanceSocket', () => {
 
     expect(isConnected.value).toBeTruthy()
     expect(lastMessage.value?.s).toBe('BTCUSDT')
-    // raw vem como string; normalização acontece na store/util
-    expect(lastMessage.value?.c).toBe('64001.00')
+    expect(lastMessage.value?.c).toBe('64001.00' as any)
   })
 
   it('reconecta após close (sem loop infinito)', async () => {
@@ -76,18 +69,16 @@ describe('useBinanceSocket', () => {
 
     connect()
     await nextTick()
-    vi.runAllTimers() // processa onopen
+    vi.runAllTimers()
 
-    // fecha a ligação → agenda reconexão com backoff inicial (1000ms)
     WSStub.instances[0].close()
 
-    // ⛔️ NÃO usar vi.runAllTimers() aqui
-    // ✅ avança só o primeiro backoff
-    vi.advanceTimersByTime(1000)
+     vi.runOnlyPendingTimers()
 
-    // nova instância criada na reconexão
+    vi.advanceTimersToNextTimer()
+
     expect(WSStub.instances.length).toBe(2)
-    // estados coerentes (durante a janela de reconexão)
+
     expect(isConnected.value === false || isReconnecting.value === true).toBeTruthy()
   })
 })

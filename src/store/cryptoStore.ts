@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { BinanceTicker24h } from '@/types/binance'
+import type { BinanceTicker24h } from '../types/binance'
 
-export type Ticker = {
+type Ticker = {
   s: string
   c: number
   p: number
@@ -11,7 +11,7 @@ export type Ticker = {
 }
 
 export const useCryptoStore = defineStore('crypto', () => {
-  const symbols = ref<string[]>(['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','ADAUSDT'])
+  const symbols = ref<string[]>(['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'ADAUSDT'])
   const map = ref<Record<string, Ticker>>({})
 
   function upsert(raw: BinanceTicker24h) {
@@ -24,13 +24,14 @@ export const useCryptoStore = defineStore('crypto', () => {
 
   const list = computed(() =>
     symbols.value
-      .map(s => map.value[s])
-      .filter(Boolean)
-      .sort((a, b) => (a!.s < b!.s ? -1 : 1))
+      .map((s) => map.value[s])
+      .filter((t): t is Ticker => Boolean(t))
+      // sort by % discount variation to highlight engines
+      .sort((a, b) => b.P - a.P)
   )
 
   const lastUpdatedAt = computed(() => {
-    const ms = Math.max(0, ...Object.values(map.value).map(t => t.E))
+    const ms = Math.max(0, ...Object.values(map.value).map((t) => t.E))
     return ms ? new Date(ms) : null
   })
 

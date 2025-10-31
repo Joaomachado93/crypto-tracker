@@ -1,17 +1,14 @@
-# Vue3 Crypto Tracker
+# Vue 3 Crypto Tracker
 
-A real-time cryptocurrency price tracker built with Vue 3, Vite, Tailwind, Pinia and Binance WebSocket API.
+Prices via Binance
 
----
+## Stack
+Vue 3 + Vite + TypeScript + Pinia + Vue Router + Tailwind CSS + Vitest.
 
-## 🚀 Setup & Run
-
-```bash
-# Install dependencies
-npm install
-
-# Run in development
+## Run
+npm i
 npm run dev
-
-# Run unit tests
 npm run test
+
+## Validate code
+npm run lint

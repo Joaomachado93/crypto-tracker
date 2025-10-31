@@ -1,4 +1,4 @@
-import { formatNumber, formatPrice } from '@/utils/math'
+import { formatNumber, formatPrice } from '../utils/math'
 
 export function useFormats() {
   // UI formatting helpers

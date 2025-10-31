@@ -1,4 +1,3 @@
-import type { BinanceTicker24h } from '@/types/binance'
 
 export type Ticker = {
   s: string
@@ -8,12 +7,13 @@ export type Ticker = {
   E: number
 }
 
-export function parseTicker(raw: BinanceTicker24h): Ticker {
+export function parseTicker(raw: any) {
+  const msg = raw && typeof raw === 'object' && 'data' in raw ? raw.data : raw
   return {
-    s: raw.s,
-    c: Number(raw.c),
-    p: Number(raw.p),
-    P: Number(raw.P),
-    E: raw.E,
+    s: String(msg.s),
+    c: Number(msg.c),
+    p: Number(msg.p),
+    P: Number(msg.P),
+    E: Number(msg.E),
   }
 }
