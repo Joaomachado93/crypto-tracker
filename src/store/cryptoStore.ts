@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { BinanceTicker24h } from '../types/binance'
 
-type Ticker = {
+export type Ticker = {
   s: string
   c: number
   p: number
@@ -10,30 +10,37 @@ type Ticker = {
   E: number
 }
 
+function formatSymbol(s: string) {
+  return String(s || '').toUpperCase()
+}
+
 export const useCryptoStore = defineStore('crypto', () => {
   const symbols = ref<string[]>(['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'ADAUSDT'])
-  const map = ref<Record<string, Ticker>>({})
+  const tickBySymbol = ref<Record<string, Ticker>>({})
 
   function upsert(raw: BinanceTicker24h) {
-    const s = raw.s
-    const c = Number(raw.c)
-    const p = Number(raw.p)
-    const P = Number(raw.P)
-    map.value[s] = { s, c, p, P, E: raw.E }
+    const s = formatSymbol(raw.s)
+    tickBySymbol.value[s] = {
+      s,
+      c: Number(raw.c),
+      p: Number(raw.p),
+      P: Number(raw.P),
+      E: raw.E,
+    }
   }
 
   const list = computed(() =>
     symbols.value
-      .map((s) => map.value[s])
+      .map(s => tickBySymbol.value[formatSymbol(s)])
       .filter((t): t is Ticker => Boolean(t))
-      // sort by % discount variation to highlight engines
+      // ordenação por % para dar destaque
       .sort((a, b) => b.P - a.P)
   )
 
   const lastUpdatedAt = computed(() => {
-    const ms = Math.max(0, ...Object.values(map.value).map((t) => t.E))
+    const ms = Math.max(0, ...Object.values(tickBySymbol.value).map(t => t.E))
     return ms ? new Date(ms) : null
   })
 
-  return { symbols, map, list, lastUpdatedAt, upsert }
+  return { symbols, tickBySymbol, list, lastUpdatedAt, upsert }
 })

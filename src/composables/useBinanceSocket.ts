@@ -1,125 +1,72 @@
-import { ref, onMounted, onUnmounted, watch, type Ref } from 'vue'
-import type { BinanceTicker24h } from '../types/binance'
+import { ref, watch, onUnmounted, type Ref } from 'vue'
+import type { BinanceTicker24h } from '@/types/binance'
 
-type CombinedMsg = { stream: string; data: BinanceTicker24h }
+const WS_BASE = 'wss://stream.binance.com:9443/ws'
 
-export function useBinanceSocket(symbols: Ref<string[]> | string[]) {
-  const ws = ref<WebSocket | null>(null)
+export function useBinanceSocket(symbols: Ref<string[]>) {
+  const socket = ref<WebSocket | null>(null)
+  const lastMessage = ref<BinanceTicker24h | null>(null)
   const isConnected = ref(false)
   const isReconnecting = ref(false)
   const lastError = ref<string | null>(null)
-  const lastMessage = ref<BinanceTicker24h | null>(null)
 
+  // counter connection
+  let reconnectTimeout: number | undefined
   let backoff = 1000
-  const maxBackoff = 30000
-  let stopped = false
-  let retryTimer: ReturnType<typeof setTimeout> | undefined
-  const hasWindow = typeof window !== 'undefined'
 
-  const buildUrl = (syms: string[]) => {
-    const streams = syms.map((s) => `${s.toLowerCase()}@ticker`).join('/')
-    return `wss://stream.binance.com:9443/stream?streams=${streams}`
-  }
-
-  const cleanup = () => {
-    if (retryTimer) {
-      clearTimeout(retryTimer)
-      retryTimer = undefined
+  function connect() {
+    if (socket.value) {
+      socket.value.close()
+      socket.value = null
     }
-    try {
-      ws.value?.close()
-    } catch {}
-    ws.value = null
-  }
 
-  const scheduleReconnect = () => {
-    if (stopped) return
-    isConnected.value = false
-    isReconnecting.value = true
+    const url = `${WS_BASE}/${symbols.value.map(s => s.toLowerCase() + '@ticker').join('/')}`
+    const ws = new WebSocket(url)
+    socket.value = ws
 
-    const base = Math.min(backoff, maxBackoff)
-
-    const isTest = typeof import.meta !== 'undefined' && (import.meta as any).vitest
-    const jitter = isTest ? 0 : Math.floor(Math.random() * 300)
-
-    retryTimer = setTimeout(connect, base + jitter)
-    backoff = Math.min(backoff * 2, maxBackoff)
-  }
-
-  const connect = () => {
-    cleanup() // garante 1 WS ativo
-    lastError.value = null
-    const list = Array.isArray(symbols) ? symbols : symbols.value
-    if (!list.length) return
-
-    const socket = new WebSocket(buildUrl(list))
-    ws.value = socket
-
-    socket.onopen = () => {
-      if (stopped) return
+    ws.onopen = () => {
       isConnected.value = true
       isReconnecting.value = false
-      backoff = 1000
+      lastError.value = null
+      backoff = 1000 // reset backoff
     }
 
-    socket.onmessage = (ev) => {
+    ws.onmessage = (e) => {
       try {
-        const msg = JSON.parse(ev.data as string)
-        const data: BinanceTicker24h =
-          msg && typeof msg === 'object' && 'data' in msg ? (msg as CombinedMsg).data : (msg as BinanceTicker24h)
-        if (stopped) return
-        if (data && data.s) lastMessage.value = data
-      } catch (e: any) {
-        lastError.value = e?.message ?? 'Parse error'
+        const data = JSON.parse(e.data)
+        if (data.e === '24hrTicker') lastMessage.value = data
+      } catch {
+        lastError.value = 'Erro ao processar mensagem.'
       }
     }
 
-    socket.onerror = () => {
-      if (stopped) return
-      lastError.value = 'WebSocket error'
+    ws.onerror = (e) => {
+      lastError.value = 'Erro de WebSocket.'
+      console.error('WebSocket error:', e)
     }
 
-    socket.onclose = () => {
-      if (stopped) return
-      scheduleReconnect()
+    ws.onclose = () => {
+      isConnected.value = false
+      isReconnecting.value = true
+      reconnect()
     }
   }
 
-  const stop = () => {
-    stopped = true
-    isReconnecting.value = false
-    cleanup()
+  function reconnect() {
+    clearTimeout(reconnectTimeout)
+    reconnectTimeout = window.setTimeout(() => {
+      connect()
+      //until 30s
+      backoff = Math.min(backoff * 2, 30000)
+    }, backoff)
   }
 
-  if (!Array.isArray(symbols)) {
-    watch(
-      symbols,
-      () => {
-        cleanup()
-        connect()
-      },
-      { deep: true }
-    )
-  }
-
-  const onOnline = () => !stopped && connect()
-  const onOffline = () => (isConnected.value = false)
-
-  onMounted(() => {
-    connect()
-    if (hasWindow) {
-      window.addEventListener('online', onOnline)
-      window.addEventListener('offline', onOffline)
-    }
-  })
+  watch(symbols, () => connect(), { immediate: true })
 
   onUnmounted(() => {
-    if (hasWindow) {
-      window.removeEventListener('online', onOnline)
-      window.removeEventListener('offline', onOffline)
-    }
-    stop()
+    socket.value?.close()
+    clearTimeout(reconnectTimeout)
   })
 
-  return { ws, isConnected, isReconnecting, lastError, lastMessage, connect, stop }
+  return { lastMessage, isConnected, isReconnecting, lastError, connect }
 }

@@ -10,7 +10,7 @@ const nfPct = new Intl.NumberFormat('en-US', { signDisplay: 'always', minimumFra
     <div class="text-right">
       <div class="text-sm">{{ nfPrice.format(c) }}</div>
       <div :class="p >= 0 ? 'text-green-600' : 'text-red-600'" class="text-xs font-semibold">
-        {{ nfPrice.format(p) }} ({{ nfPct.format(P) }}) <span>{{ p >= 0 ? '▲' : '▼' }}</span>
+        {{ nfPrice.format(p) }} ({{ nfPct.format(P) }}) <span>{{ p >= 0 ? '^' : 'V' }}</span>
       </div>
     </div>
   </div>

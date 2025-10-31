@@ -35,5 +35,8 @@ watch(lastMessage, m => { if (m?.s) store.upsert(m) })
         </RouterLink>
       </li>
     </ul>
+    <div v-if="list.length === 0" class="p-6 text-center text-gray-500">
+      Sem dados
+    </div>
   </section>
 </template>

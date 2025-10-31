@@ -38,7 +38,7 @@ afterEach(() => {
 })
 
 describe('useBinanceSocket', () => {
-  it('recebe mensagens e atualiza lastMessage', async () => {
+  it('last Message', async () => {
     const symbols = ref(['BTCUSDT', 'ETHUSDT'])
     const { lastMessage, isConnected, connect } = useBinanceSocket(symbols)
 
@@ -63,7 +63,7 @@ describe('useBinanceSocket', () => {
     expect(lastMessage.value?.c).toBe('64001.00' as any)
   })
 
-  it('reconecta após close (sem loop infinito)', async () => {
+  it('Tentar ligar após close sem ficar em loop ', async () => {
     const symbols = ref(['BTCUSDT'])
     const { isConnected, isReconnecting, connect } = useBinanceSocket(symbols)
 
